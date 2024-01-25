@@ -13,12 +13,11 @@ void setup() {
 
   homeSpan.begin(Category::Switches, "PC Power Button");
 
-  // Accessory 2: Relay Switch
   new SpanAccessory();
-  new Service::AccessoryInformation();
-  new Characteristic::Identify();
-  new Characteristic::Name("PC Power Button");
-  new PCPwrButton(PINT_PWR_BTN_IN, PIN_RELAY_OUT);
+    new Service::AccessoryInformation();
+      new Characteristic::Identify();
+      new Characteristic::Name("PC Power Button");
+    new PCPwrButton(PINT_PWR_BTN_IN, PIN_RELAY_OUT);
 }
 
 void loop() {
