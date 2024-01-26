@@ -5,8 +5,9 @@ struct PCPwrButton : Service::Switch {
 
   int pinRelayOut;
   int pinPwrBtnIn;
+  int pinDebug;
 
-  PCPwrButton(int pinPwrBtnIn, int pinRelayOut)
+  PCPwrButton(int pinPwrBtnIn, int pinRelayOut, int pinDebug)
     : Service::Switch() {
     on = new Characteristic::On();
 
@@ -16,6 +17,9 @@ struct PCPwrButton : Service::Switch {
 
     this->pinRelayOut = pinRelayOut;
     pinMode(pinRelayOut, OUTPUT);
+
+    this->pinDebug = pinDebug;
+    pinMode(pinDebug, OUTPUT);
   }
 
   boolean update() {
@@ -42,9 +46,11 @@ struct PCPwrButton : Service::Switch {
   }
 
   void pushRelayOut() {
+    digitalWrite(this->pinDebug, 1);
     digitalWrite(this->pinRelayOut, 1);
     delay(500);
     on->setVal(0);
     digitalWrite(this->pinRelayOut, 0);
+    digitalWrite(this->pinDebug, 0);
   }
 };

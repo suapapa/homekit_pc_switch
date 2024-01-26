@@ -1,9 +1,10 @@
 #include <HomeSpan.h>
 #include "pc_pwr_button.h"
 
-#define PIN_PWRBTN_IN 18
-#define PIN_RELAY_OUT 16 // 12
 #define PIN_STATUS_LED 15
+#define PIN_PWRBTN_IN 18
+#define PIN_RELAY_OUT 12
+#define PIN_DEBUG 16
 
 void setup() {
   Serial.begin(115200);
@@ -18,7 +19,7 @@ void setup() {
     new Service::AccessoryInformation();
       new Characteristic::Identify();
       new Characteristic::Name("PC Power Button");
-    new PCPwrButton(PINT_PWR_BTN_IN, PIN_RELAY_OUT);
+    new PCPwrButton(PIN_PWRBTN_IN, PIN_RELAY_OUT, PIN_DEBUG);
 }
 
 void loop() {
