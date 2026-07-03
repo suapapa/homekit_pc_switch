@@ -1,0 +1,28 @@
+# Wi-Fi: hard-coded credentials (override via menuconfig / sdkconfig if needed)
+CONFIG_APP_WIFI_USE_HARDCODED=y
+CONFIG_APP_WIFI_SSID="YOUR_WIFI_SSID"
+CONFIG_APP_WIFI_PASSWORD="YOUR_WIFI_PASSWORD"
+
+# HomeKit pairing (matches Arduino HomeSpan sketch)
+CONFIG_EXAMPLE_USE_HARDCODED_SETUP_CODE=y
+CONFIG_EXAMPLE_SETUP_CODE="111-22-334"
+CONFIG_EXAMPLE_SETUP_ID="ES32"
+
+# Required for HAP over Wi-Fi
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
+# LWIP sockets: HomeKit HTTPD needs max_open_sockets (default 8) + 3 internal
+CONFIG_LWIP_MAX_SOCKETS=16
+CONFIG_LWIP_SO_REUSE=y
+CONFIG_LWIP_MAX_ACTIVE_TCP=12
+CONFIG_LWIP_MAX_LISTENING_TCP=12
+
+# mDNS for HomeKit discovery
+CONFIG_MDNS_MAX_SERVICES=10
+
+# Larger main task stack (HomeKit + Wi-Fi)
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Wi-Fi TX power / responsiveness for HomeKit pairing
+CONFIG_ESP_PHY_MAX_WIFI_TX_POWER=20
+CONFIG_ESP_WIFI_STA_DISCONNECTED_PM_ENABLE=n

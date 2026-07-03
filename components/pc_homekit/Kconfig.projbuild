@@ -1,0 +1,19 @@
+menu "PC HomeKit Configuration"
+
+    config EXAMPLE_USE_HARDCODED_SETUP_CODE
+        bool "Use hard-coded setup code"
+        default y
+        help
+            Use a hard-coded HomeKit setup code (testing only).
+
+    config EXAMPLE_SETUP_CODE
+        string "HomeKit Setup Code"
+        default "111-22-334"
+        depends on EXAMPLE_USE_HARDCODED_SETUP_CODE
+
+    config EXAMPLE_SETUP_ID
+        string "HomeKit Setup Id"
+        default "ES32"
+        depends on EXAMPLE_USE_HARDCODED_SETUP_CODE
+
+endmenu

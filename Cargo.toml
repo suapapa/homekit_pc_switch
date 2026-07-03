@@ -1,0 +1,39 @@
+[package]
+edition = "2021"
+name = "hap-pc-btn"
+version = "0.1.0"
+resolver = "2"
+rust-version = "1.82"
+
+[[bin]]
+name = "hap-pc-btn"
+path = "src/bin/main.rs"
+harness = false
+
+[profile.dev]
+debug = true
+opt-level = "z"
+
+[profile.release]
+opt-level = "s"
+
+[dependencies]
+log = "0.4"
+anyhow = "1"
+esp-idf-svc = { version = "0.52.1", features = ["critical-section"] }
+
+[build-dependencies]
+embuild = "0.33"
+anyhow = "1"
+
+[package.metadata.esp-idf-sys]
+esp_idf_sdkconfig_defaults = ["sdkconfig.defaults", "sdkconfig.defaults.env"]
+
+[[package.metadata.esp-idf-sys.extra_components]]
+component_dirs = [
+    "third-party/esp-homekit-sdk/components",
+    "third-party/esp-homekit-sdk/components/homekit",
+    "third-party/esp-homekit-sdk/examples/common",
+    "components",
+]
+bindings_header = "components/pc_homekit/include/pc_homekit.h"
