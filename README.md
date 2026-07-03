@@ -108,7 +108,7 @@ Use either method to add the switch in the iOS **Home** app:
 
 2. **Pre-generated QR image** — For the default `sdkconfig.defaults` settings below, scan this QR code:
 
-![HomeKit pairing QR (default settings)](img/qr-hap-pc-btn.webp)
+![HomeKit pairing QR (default settings)](img/qr-hap-pc-btn.png)
 
 | Setting    | Default value   |
 |------------|-----------------|
