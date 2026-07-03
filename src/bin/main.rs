@@ -59,9 +59,12 @@ fn main() -> anyhow::Result<()> {
     );
     log::info!("HomeKit pairing code: 111-22-334");
 
-    let mut last_button_low = false;
+    let mut last_raw_pressed = button.is_low();
+    let mut stable_pressed = false;
     let mut debouncing = false;
     let mut debounce_deadline = Instant::now();
+    let mut press_start: Option<Instant> = None;
+    let mut long_press_triggered = false;
     let mut led_on = false;
     let mut last_blink = Instant::now();
 
@@ -80,33 +83,82 @@ fn main() -> anyhow::Result<()> {
             }
         }
 
-        let pressed = button.is_low();
-        if pressed != last_button_low {
-            last_button_low = pressed;
-            if pressed {
-                debouncing = true;
-                debounce_deadline =
-                    Instant::now() + Duration::from_millis(pins::BUTTON_DEBOUNCE_MS as u64);
+        let raw_pressed = button.is_low();
+        if raw_pressed != last_raw_pressed {
+            last_raw_pressed = raw_pressed;
+            debouncing = true;
+            debounce_deadline =
+                Instant::now() + Duration::from_millis(pins::BUTTON_DEBOUNCE_MS as u64);
+        }
+
+        if debouncing && Instant::now() >= debounce_deadline {
+            debouncing = false;
+            if raw_pressed != stable_pressed {
+                stable_pressed = raw_pressed;
+                if stable_pressed {
+                    press_start = Some(Instant::now());
+                    long_press_triggered = false;
+                } else if let Some(start) = press_start.take() {
+                    let held = start.elapsed();
+                    if !long_press_triggered
+                        && held < Duration::from_millis(pins::BUTTON_SHORT_PRESS_MAX_MS as u64)
+                    {
+                        log::info!("Short press ({} ms) -> power on", held.as_millis());
+                        pulse_relay(gpio);
+                        notify_physical_button();
+                    } else if !long_press_triggered {
+                        log::info!(
+                            "Release after {} ms (not short/long) -> ignored",
+                            held.as_millis()
+                        );
+                    }
+                    long_press_triggered = false;
+                }
             }
         }
 
-        if debouncing && Instant::now() >= debounce_deadline && pressed {
-            debouncing = false;
-            log::info!("Physical button -> relay pulse");
-            pulse_relay(gpio);
-            notify_physical_button();
+        if stable_pressed && !long_press_triggered {
+            if let Some(start) = press_start {
+                if start.elapsed() >= Duration::from_millis(pins::BUTTON_LONG_PRESS_MS as u64) {
+                    long_press_triggered = true;
+                    log::info!(
+                        "Long press (>= {} ms) -> force shutdown ({} ms hold)",
+                        pins::BUTTON_LONG_PRESS_MS,
+                        pins::FORCE_SHUTDOWN_MS
+                    );
+                    hold_relay(gpio, pins::FORCE_SHUTDOWN_MS);
+                }
+            }
         }
     }
 }
 
-fn pulse_relay(gpio: &GpioState) {
-    if let (Ok(mut relay), Ok(mut debug)) = (gpio.relay.lock(), gpio.debug.lock()) {
-        let _ = relay.set_high();
-        let _ = debug.set_high();
-        FreeRtos::delay_ms(pins::RELAY_PULSE_MS);
-        let _ = relay.set_low();
-        let _ = debug.set_low();
+fn set_relay_outputs(
+    gpio: &GpioState,
+    on: bool,
+) -> Result<(), esp_idf_svc::hal::gpio::GpioError> {
+    let mut relay = gpio.relay.lock().unwrap();
+    let mut debug = gpio.debug.lock().unwrap();
+    if on {
+        relay.set_high()?;
+        debug.set_high()?;
+    } else {
+        relay.set_low()?;
+        debug.set_low()?;
     }
+    Ok(())
+}
+
+fn pulse_relay(gpio: &GpioState) {
+    let _ = set_relay_outputs(gpio, true);
+    FreeRtos::delay_ms(pins::RELAY_PULSE_MS);
+    let _ = set_relay_outputs(gpio, false);
+}
+
+fn hold_relay(gpio: &GpioState, duration_ms: u32) {
+    let _ = set_relay_outputs(gpio, true);
+    FreeRtos::delay_ms(duration_ms);
+    let _ = set_relay_outputs(gpio, false);
 }
 
 unsafe extern "C" fn relay_pulse() {
