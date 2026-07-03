@@ -2,7 +2,7 @@
 
 ![hero](img/concept.webp)
 
-Rust firmware for **ESP32-C3** that exposes a **HomeKit Switch** accessory to pulse a PC power-button relay (500 ms). Behavior matches the original Arduino/HomeSpan reference in `_ref/arduino/`.
+Rust firmware for **ESP32-C3** that exposes a **HomeKit Switch** accessory to pulse a PC power-button relay (500 ms).
 
 - **HomeKit**: [Espressif esp-homekit-sdk](https://github.com/espressif/esp-homekit-sdk) (C)
 - **Rust**: `esp-idf-svc` + `esp-idf-hal` (std, FreeRTOS)
