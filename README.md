@@ -1,5 +1,7 @@
 # hap-pc-btn
 
+![hero](img/concept.webp)
+
 Rust firmware for **ESP32-C3** that exposes a **HomeKit Switch** accessory to pulse a PC power-button relay (500 ms). Behavior matches the original Arduino/HomeSpan reference in `_ref/arduino/`.
 
 - **HomeKit**: [Espressif esp-homekit-sdk](https://github.com/espressif/esp-homekit-sdk) (C)
@@ -98,17 +100,37 @@ The first build downloads ESP-IDF and tools (~5+ minutes). Later builds are much
 
 ## HomeKit pairing
 
-Default pairing code: **111-22-334**
+### Register the accessory
 
-Generate a QR code URI (setup ID must match `CONFIG_EXAMPLE_SETUP_ID` in `sdkconfig.defaults`, default `ES32`):
+Use either method to add the switch in the iOS **Home** app:
+
+1. **Serial monitor QR** — After flash/boot, the firmware prints an ASCII QR code and setup URI in the log (`app_hap_setup_payload`). Run `cargo run --release` (or your serial monitor) and scan the QR from the terminal output.
+
+2. **Pre-generated QR image** — For the default `sdkconfig.defaults` settings below, scan this QR code:
+
+![HomeKit pairing QR (default settings)](img/qr-hap-pc-btn.webp)
+
+| Setting    | Default value   |
+|------------|-----------------|
+| Setup code | `111-22-334`    |
+| Setup ID   | `ES32`          |
+| Setup URI  | `X-HM://0080QW42MES32` |
+
+You can also enter the setup code manually in the Home app if QR scanning is inconvenient.
+
+### Change setup code or Setup ID
+
+Edit `sdkconfig.defaults` (`CONFIG_EXAMPLE_SETUP_CODE`, `CONFIG_EXAMPLE_SETUP_ID`), rebuild, and flash. Then regenerate a matching QR — the image above and any printed sticker will be wrong until you do.
 
 ```bash
-./script/generate_qr.py
-./script/generate_qr.py -s          # URI only
-./script/show_homekit_pc_switch_qr.sh
+./script/generate_qr.py              # print URI + settings summary
+./script/generate_qr.py -s           # URI only
+./script/show_homekit_pc_switch_qr.sh  # print URI and open QR in browser
 ```
 
-Wrong setup ID produces a QR that the iPhone accepts, but the device will not respond — mDNS filters on the setup ID suffix.
+`show_homekit_pc_switch_qr.sh` reads the current values from `sdkconfig.defaults` via `generate_qr.py`, so it stays in sync with firmware.
+
+**Important:** Setup ID must match `CONFIG_EXAMPLE_SETUP_ID` in the flashed firmware. A QR with the wrong Setup ID can look valid in the Home app, but the ESP32 will not respond — mDNS discovery filters on the Setup ID suffix.
 
 ## How it works
 
@@ -144,6 +166,7 @@ third-party/esp-homekit-sdk/ Espressif SDK (local clone)
 | `sdkconfig.defaults`  | WiFi, HomeKit, stack/mDNS defaults           |
 | `components/pc_homekit/` | Custom IDF component (HAP Switch)         |
 | `script/`             | HomeKit QR code generators                   |
+| `img/`                | Default HomeKit pairing QR image             |
 | `AGENTS.md`           | Contributor / AI agent handoff notes         |
 
 ## References
@@ -154,4 +177,6 @@ third-party/esp-homekit-sdk/ Espressif SDK (local clone)
 
 ## License
 
-See repository license file if present. esp-homekit-sdk has its own license in `third-party/esp-homekit-sdk/`.
+Original code in this repository (Rust firmware, `components/pc_homekit/`, scripts, and documentation) is licensed under the [MIT License](LICENSE).
+
+Third-party dependencies have their own licenses — notably [esp-homekit-sdk](https://github.com/espressif/esp-homekit-sdk) in `third-party/esp-homekit-sdk/`.
