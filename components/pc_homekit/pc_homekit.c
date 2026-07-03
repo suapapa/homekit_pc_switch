@@ -59,15 +59,24 @@ static int switch_write(hap_write_data_t write_data[], int count,
         void *serv_priv, void *write_priv)
 {
     int i, ret = HAP_SUCCESS;
+    hap_val_t off = { .b = false };
+
     for (i = 0; i < count; i++) {
         hap_write_data_t *write = &write_data[i];
         if (!strcmp(hap_char_get_type_uuid(write->hc), HAP_CHAR_UUID_ON)) {
             ESP_LOGI(TAG, "Switch write: On=%d", write->val.b);
-            if (write->val.b && s_relay_pulse) {
-                s_relay_pulse();
+            if (write->val.b) {
+                /* ATX power is momentary: pulse relay, then force Switch Off.
+                 * Apply ON first so hap_char_update_val(OFF) sees a change and
+                 * notifies controllers (internal state starts false). */
+                hap_char_update_val(write->hc, &write->val);
+                if (s_relay_pulse) {
+                    s_relay_pulse();
+                }
+                hap_char_update_val(write->hc, &off);
+            } else {
+                hap_char_update_val(write->hc, &off);
             }
-            write->val.b = false;
-            hap_char_update_val(write->hc, &write->val);
             *(write->status) = HAP_STATUS_SUCCESS;
         } else {
             *(write->status) = HAP_STATUS_RES_ABSENT;
