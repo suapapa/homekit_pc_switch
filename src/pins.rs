@@ -1,14 +1,11 @@
-//! GPIO pin assignments for ESP32-C3 Super Mini.
+//! GPIO pin assignments for ESP32-S2 (matches Arduino HomeSpan reference).
 //!
-//! Exposed header pins: GPIO0–10, GPIO20, GPIO21 (GPIO18 is NOT broken out).
-//! Strapping pins GPIO2, GPIO8, GPIO9 must not be pulled low at reset.
-//! - GPIO8: onboard blue LED (active-low); safe to drive after boot
-//! - GPIO9: onboard BOOT button — do not wire external circuits here
+//! Strapping pins GPIO0, GPIO3, GPIO45, GPIO46 must not be pulled low at reset.
 
-pub const STATUS_LED: i32 = 8;
-pub const PWRBTN_IN: i32 = 4;
-pub const RELAY_OUT: i32 = 10;
-pub const DEBUG_OUT: i32 = 3;
+pub const STATUS_LED: i32 = 15;
+pub const PWRBTN_IN: i32 = 18;
+pub const RELAY_OUT: i32 = 12;
+pub const DEBUG_OUT: i32 = 16;
 
 pub const RELAY_PULSE_MS: u32 = 500;
 pub const FORCE_SHUTDOWN_MS: u32 = 5000;

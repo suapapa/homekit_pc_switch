@@ -25,10 +25,10 @@ fn main() -> anyhow::Result<()> {
     let peripherals = Peripherals::take()?;
     let pins_hw = peripherals.pins;
 
-    let status_led = PinDriver::output(pins_hw.gpio8)?;
-    let button = PinDriver::input(pins_hw.gpio4, Pull::Up)?;
-    let relay = PinDriver::output(pins_hw.gpio10)?;
-    let debug = PinDriver::output(pins_hw.gpio3)?;
+    let status_led = PinDriver::output(pins_hw.gpio15)?;
+    let button = PinDriver::input(pins_hw.gpio18, Pull::Up)?;
+    let relay = PinDriver::output(pins_hw.gpio12)?;
+    let debug = PinDriver::output(pins_hw.gpio16)?;
 
     let gpio: &'static GpioState = Box::leak(Box::new(GpioState {
         relay: Mutex::new(relay),
@@ -42,7 +42,7 @@ fn main() -> anyhow::Result<()> {
         let mut led = gpio.status_led.lock().unwrap();
         relay.set_low()?;
         debug.set_low()?;
-        led.set_high()?; // active-low LED off
+        led.set_low()?; // external status LED off
     }
 
     *GPIO.lock().unwrap() = Some(gpio);
@@ -76,9 +76,9 @@ fn main() -> anyhow::Result<()> {
             led_on = !led_on;
             if let Ok(mut led) = gpio.status_led.lock() {
                 if led_on {
-                    let _ = led.set_low();
-                } else {
                     let _ = led.set_high();
+                } else {
+                    let _ = led.set_low();
                 }
             }
         }

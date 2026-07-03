@@ -30,7 +30,7 @@ static const char *TAG = "pc_homekit";
 static hap_char_t *s_switch_on_char = NULL;
 static pc_relay_pulse_fn s_relay_pulse = NULL;
 
-/// Max TX power + no Wi-Fi power save — helps HomeKit discovery/pairing on ESP32-C3.
+/// Max TX power + no Wi-Fi power save — helps HomeKit discovery/pairing on ESP32-S2.
 static void pc_homekit_wifi_boost(void)
 {
     esp_err_t err = esp_wifi_set_max_tx_power(80); /* 80 × 0.25 dBm = 20 dBm */

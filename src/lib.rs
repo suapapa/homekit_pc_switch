@@ -1,4 +1,4 @@
-//! HomeKit PC power button — ESP32-C3 + esp-homekit-sdk.
+//! HomeKit PC power button — ESP32-S2 + esp-homekit-sdk.
 
 pub mod ffi;
 pub mod pins;

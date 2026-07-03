@@ -4,7 +4,7 @@ Handoff guide for AI agents and contributors continuing work on this repo.
 
 ## What this project is
 
-Rust firmware for **ESP32-C3** that exposes a **HomeKit Switch** accessory to pulse a PC power button relay (500 ms), matching the original Arduino/HomeSpan sketch in `_ref/arduino/`.
+Rust firmware for **ESP32-S2** that exposes a **HomeKit Switch** accessory to pulse a PC power button relay (500 ms), matching the original Arduino/HomeSpan sketch in `_ref/arduino/`.
 
 - **HomeKit stack**: [Espressif esp-homekit-sdk](https://github.com/espressif/esp-homekit-sdk) (C), not the Rust `hap` crate
 - **Rust stack**: `esp-idf-svc` + `esp-idf-hal` (std, FreeRTOS), **not** `esp-hal` no_std
@@ -22,24 +22,24 @@ third-party/esp-homekit-sdk/         Vendored Espressif SDK (git clone)
 **Control flow**
 
 1. HomeKit Switch `On=true` → C `switch_write()` → Rust `relay_pulse()` → 500 ms relay HIGH → Switch forced back to `Off`
-2. Physical button (GPIO4, active low, debounced) → same relay pulse + `pc_homekit_physical_button()` to sync HomeKit state
+2. Physical button (GPIO18, active low, debounced) → same relay pulse + `pc_homekit_physical_button()` to sync HomeKit state
 
 WiFi and HAP run in a FreeRTOS task started by `pc_homekit_start()`; Rust `main()` owns GPIO polling.
 
-## Hardware (ESP32-C3 Super Mini)
+## Hardware (ESP32-S2)
 
-Board exposes GPIO0–10 and GPIO20–21 on headers. GPIO18 is **not** broken out.
+Pin map matches `_ref/arduino/homekit_pc_switch.ino`.
 
-| Signal      | GPIO | Board label | Notes |
-|-------------|------|-------------|-------|
-| Status LED  | 8    | (onboard)   | Active-low blue LED; strapping pin — keep HIGH at boot |
-| Power button| 4    | IO4         | External input, pull-up, active low |
-| Relay out   | 10   | IO10        | 500 ms pulse |
-| Debug out   | 3    | IO3         | Toggles with relay |
+| Signal      | GPIO | Notes |
+|-------------|------|-------|
+| Status LED  | 15   | External LED, active high |
+| Power button| 18   | External input, pull-up, active low |
+| Relay out   | 12   | 500 ms pulse |
+| Debug out   | 16   | Toggles with relay |
 
-**Do not use:** GPIO9 (onboard BOOT / download mode), GPIO2 (strapping). GPIO8 is the onboard LED only — do not add external loads that pull it low at reset.
+**Do not use:** GPIO0, GPIO3, GPIO45, GPIO46 (strapping pins).
 
-Pin constants: `src/pins.rs`. Arduino reference used ESP32-S2 pins (15/18/12/16).
+Pin constants: `src/pins.rs`.
 
 Reference sketch: `_ref/arduino/homekit_pc_switch.ino`, `_ref/arduino/pc_pwr_button.h`
 
@@ -48,8 +48,8 @@ Reference sketch: `_ref/arduino/homekit_pc_switch.ino`, `_ref/arduino/pc_pwr_but
 | Requirement | Value |
 |-------------|-------|
 | Rust toolchain | `esp-1.90` (`rust-toolchain.toml`) |
-| Target | `riscv32imc-esp-espidf` |
-| MCU | `esp32c3` (`.cargo/config.toml` → `MCU`) |
+| Target | `xtensa-esp32s2-espidf` |
+| MCU | `esp32s2` (`.cargo/config.toml` → `MCU`) |
 | ESP-IDF | **v5.5.3** managed via `embuild` (`ESP_IDF_VERSION` in `.cargo/config.toml`) |
 | Flash runner | `espflash` (via `.cargo/config.toml` runner) |
 
@@ -80,7 +80,7 @@ Uses hardcoded WiFi (`CONFIG_APP_WIFI_USE_HARDCODED=y`), not BLE/SoftAP provisio
 unset IDF_PATH          # use managed v5.5.3 from .cargo/config.toml
 cargo build             # dev
 cargo build --release
-cargo run --release       # espflash flash --monitor --chip esp32c3
+cargo run --release       # espflash flash --no-stub --chip esp32s2
 ```
 
 First build downloads IDF/tools and compiles C components (~5+ min). Subsequent builds are faster.
@@ -146,7 +146,7 @@ Do **not** use `ESP_IDF_EXTRA_COMPONENT_DIRS` env var; use this metadata block.
 
 **Done**
 
-- esp-idf-std project scaffold for ESP32-C3
+- esp-idf-std project scaffold for ESP32-S2
 - esp-homekit-sdk integration via C component + FFI
 - Switch accessory with relay pulse semantics matching Arduino
 - Physical button + status LED loop in Rust

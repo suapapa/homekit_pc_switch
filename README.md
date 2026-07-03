@@ -2,7 +2,7 @@
 
 ![hero](img/concept.webp)
 
-Rust firmware for **ESP32-C3** that exposes a **HomeKit Switch** accessory to pulse a PC power-button relay (500 ms). Behavior matches the original Arduino/HomeSpan reference in `_ref/arduino/`.
+Rust firmware for **ESP32-S2** that exposes a **HomeKit Switch** accessory to pulse a PC power-button relay (500 ms). Behavior matches the original Arduino/HomeSpan reference in `_ref/arduino/`.
 
 - **HomeKit**: [Espressif esp-homekit-sdk](https://github.com/espressif/esp-homekit-sdk) (C)
 - **Rust**: `esp-idf-svc` + `esp-idf-hal` (std, FreeRTOS)
@@ -17,16 +17,16 @@ Rust firmware for **ESP32-C3** that exposes a **HomeKit Switch** accessory to pu
 
 ## Hardware
 
-Target board: **ESP32-C3 Super Mini**
+Target board: **ESP32-S2** (pin map matches `_ref/arduino/homekit_pc_switch.ino`)
 
 | Signal       | GPIO | Notes                                      |
 |--------------|------|--------------------------------------------|
-| Status LED   | 8    | Onboard, active-low; strapping pin         |
-| Power button | 4    | External input, pull-up, active low        |
-| Relay out    | 10   | 500 ms pulse to PC front-panel header      |
-| Debug out    | 3    | Toggles with relay                         |
+| Status LED   | 15   | External LED (active high)                 |
+| Power button | 18   | External input, pull-up, active low        |
+| Relay out    | 12   | 500 ms pulse to PC front-panel header      |
+| Debug out    | 16   | Toggles with relay                         |
 
-**Avoid:** GPIO9 (BOOT), GPIO2 (strapping). GPIO18 is not broken out on this board.
+**Avoid:** GPIO0, GPIO3, GPIO45, GPIO46 (strapping pins).
 
 Pin constants live in `src/pins.rs`.
 
@@ -35,8 +35,8 @@ Pin constants live in `src/pins.rs`.
 | Requirement   | Value                          |
 |---------------|--------------------------------|
 | Rust          | `esp-1.90` (`rust-toolchain.toml`) |
-| Target        | `riscv32imc-esp-espidf`        |
-| MCU           | `esp32c3`                      |
+| Target        | `xtensa-esp32s2-espidf`        |
+| MCU           | `esp32s2`                      |
 | ESP-IDF       | **v5.5.3** (managed by embuild) |
 | Flash tool    | `espflash`                     |
 
@@ -93,7 +93,7 @@ export WIFI_PASS="your-password"
 unset IDF_PATH
 cargo build              # dev
 cargo build --release
-cargo run --release      # flash + serial monitor (esp32c3)
+cargo run --release      # flash only (esp32s2, --no-stub)
 ```
 
 The first build downloads ESP-IDF and tools (~5+ minutes). Later builds are much faster.
@@ -104,7 +104,7 @@ The first build downloads ESP-IDF and tools (~5+ minutes). Later builds are much
 
 Use either method to add the switch in the iOS **Home** app:
 
-1. **Serial monitor QR** — After flash/boot, the firmware prints an ASCII QR code and setup URI in the log (`app_hap_setup_payload`). Run `cargo run --release` (or your serial monitor) and scan the QR from the terminal output.
+1. **Serial monitor QR** — After flash/boot, the firmware prints an ASCII QR code and setup URI in the log (`app_hap_setup_payload`). Flash with `cargo run --release`, then open a serial monitor separately and scan the QR from the log output.
 
 2. **Pre-generated QR image** — For the default `sdkconfig.defaults` settings below, scan this QR code:
 
