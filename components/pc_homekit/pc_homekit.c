@@ -27,8 +27,18 @@ static const char *TAG = "pc_homekit";
 #define PC_HOMEKIT_TASK_STACKSIZE (6 * 1024)
 #define PC_HOMEKIT_TASK_PRIORITY  1
 
+#define RELAY_PULSE_TASK_NAME     "relay_pulse"
+#define RELAY_PULSE_TASK_STACK    (3 * 1024)
+#define RELAY_PULSE_TASK_PRIORITY 2
+
+/* Let the write response reach the controller before relay work starts. */
+#define HAP_WRITE_SETTLE_MS       150
+/* After relay pulse, wait before syncing Switch Off (matches Arduino setVal timing). */
+#define HAP_OFF_SYNC_DELAY_MS     400
+
 static hap_char_t *s_switch_on_char = NULL;
 static pc_relay_pulse_fn s_relay_pulse = NULL;
+static volatile bool s_relay_task_running = false;
 
 /// Max TX power + no Wi-Fi power save — helps HomeKit discovery/pairing on ESP32-S2.
 static void pc_homekit_wifi_boost(void)
@@ -49,6 +59,50 @@ void pc_homekit_set_relay_pulse(pc_relay_pulse_fn fn)
     s_relay_pulse = fn;
 }
 
+static void sync_switch_off(void)
+{
+    if (!s_switch_on_char) {
+        return;
+    }
+
+    const hap_val_t *cur = hap_char_get_val(s_switch_on_char);
+    if (cur && cur->b) {
+        hap_val_t off = { .b = false };
+        hap_char_update_val(s_switch_on_char, &off);
+    }
+}
+
+static void relay_pulse_task(void *arg)
+{
+    (void)arg;
+
+    vTaskDelay(pdMS_TO_TICKS(HAP_WRITE_SETTLE_MS));
+    if (s_relay_pulse) {
+        s_relay_pulse();
+    }
+    vTaskDelay(pdMS_TO_TICKS(HAP_OFF_SYNC_DELAY_MS));
+    sync_switch_off();
+    s_relay_task_running = false;
+    vTaskDelete(NULL);
+}
+
+static bool schedule_relay_pulse(void)
+{
+    if (s_relay_task_running) {
+        ESP_LOGW(TAG, "Relay pulse already in progress, ignoring");
+        return false;
+    }
+
+    s_relay_task_running = true;
+    if (xTaskCreate(relay_pulse_task, RELAY_PULSE_TASK_NAME, RELAY_PULSE_TASK_STACK,
+                NULL, RELAY_PULSE_TASK_PRIORITY, NULL) != pdPASS) {
+        s_relay_task_running = false;
+        ESP_LOGE(TAG, "Failed to start relay pulse task");
+        return false;
+    }
+    return true;
+}
+
 static int switch_identify(hap_acc_t *ha)
 {
     ESP_LOGI(TAG, "Accessory identified");
@@ -66,14 +120,10 @@ static int switch_write(hap_write_data_t write_data[], int count,
         if (!strcmp(hap_char_get_type_uuid(write->hc), HAP_CHAR_UUID_ON)) {
             ESP_LOGI(TAG, "Switch write: On=%d", write->val.b);
             if (write->val.b) {
-                /* ATX power is momentary: pulse relay, then force Switch Off.
-                 * Apply ON first so hap_char_update_val(OFF) sees a change and
-                 * notifies controllers (internal state starts false). */
-                hap_char_update_val(write->hc, &write->val);
-                if (s_relay_pulse) {
-                    s_relay_pulse();
-                }
-                hap_char_update_val(write->hc, &off);
+                /* Momentary ATX button: return immediately (write response stays Off),
+                 * pulse relay in a worker task, then sync Off after relay + settle time.
+                 * Do not push On here — that double-updates the phone and causes UI stutter. */
+                schedule_relay_pulse();
             } else {
                 hap_char_update_val(write->hc, &off);
             }
@@ -87,16 +137,7 @@ static int switch_write(hap_write_data_t write_data[], int count,
 
 void pc_homekit_physical_button(void)
 {
-    if (!s_relay_pulse) {
-        return;
-    }
-
-    s_relay_pulse();
-
-    if (s_switch_on_char) {
-        hap_val_t val = { .b = false };
-        hap_char_update_val(s_switch_on_char, &val);
-    }
+    schedule_relay_pulse();
 }
 
 static void pc_homekit_thread(void *arg)
